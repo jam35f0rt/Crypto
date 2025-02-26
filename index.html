@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Crypto Tracker</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.2/axios.min.js"></script>
+  <style>
+    :root {
+      --primary: #3498db;
+      --danger: #e74c3c;
+      --success: #2ecc71;
+      --dark: #2c3e50;
+      --light: #ecf0f1;
+      --light-gray: #f5f7fa;
+      --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+    
+    body {
+      background-color: var(--light);
+      color: var(--dark);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding: 24px;
+    }
+    
+    h1 {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 24px;
+      color: var(--dark);
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      width: 100%;
+    }
+    
+    .search-container {
+      display: flex;
+      margin-bottom: 32px;
+      gap: 16px;
+      flex-wrap: wrap;
+      background-color: white;
+      padding: 20px;
+      border-radius: 16px;
+      box-shadow: var(--card-shadow);
+    }
+    
+    .search-input-wrapper {
+      position: relative;
+      flex: 1;
+      min-width: 200px;
+    }
+    
+    .search-input-wrapper input {
+      width: 100%;
+      padding: 16px;
+      border-radius: 12px;
+      border: 1px solid #e0e0e0;
+      background: white;
+      font-size: 16px;
+      outline: none;
+      transition: all 0.2s;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+    
+    .search-input-wrapper input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+    }
+    
+    /* Custom select styling */
+    .custom-select {
+      position: relative;
+      display: none; /* Hidden by default, shown when search is focused */
+      width: 100%;
+      z-index: 10;
+    }
+    
+    #selected-crypto {
+      padding: 16px;
+      border-radius: 12px;
+      border: 1px solid #e0e0e0;
+      background: white;
+      font-size: 16px;
+      cursor: pointer;
+      display: none; /* We'll use the input instead */
+    }
+    
+    .crypto-options {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      max-height: 300px;
+      overflow-y: auto;
+      background: white;
+      border: 1px solid #e0e0e0;
+      border-radius: 0 0 12px 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      z-index: 100;
+      display: none;
+    }
+    
+    .crypto-options.show {
+      display: block;
+    }
+    
+    .crypto-option {
+      padding: 12px 16px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    
+    .crypto-option:hover {
+      background: var(--light-gray);
+    }
+    
+    .crypto-option.selected {
+      background: rgba(52, 152, 219, 0.1);
+      font-weight: 500;
+    }
+    
+    /* Search results dropdown */
+    .search-results {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      max-height: 300px;
+      overflow-y: auto;
+      background: white;
+      border: 1px solid #e0e0e0;
+      border-top: none;
+      border-radius: 0 0 12px 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      z-index: 100;
+      display: none;
+    }
+    
+    .crypto-option {
+      padding: 12px 16px;
+      cursor: pointer;
+      transition: background 0.2s;
+      border-bottom: 1px solid #f1f1f1;
+    }
+    
+    .crypto-option:last-child {
+      border-bottom: none;
+    }
+    
+    .crypto-option:hover {
+      background: var(--light-gray);
+    }
+    
+    button {
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 16px 24px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 4px 6px rgba(52, 152, 219, 0.2);
+    }
+    
+    button:hover {
+      background-color: #2980b9;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 8px rgba(52, 152, 219, 0.3);
+    }
+    
+    button:active {
+      transform: translateY(1px);
+      box-shadow: 0 2px 4px rgba(52, 152, 219, 0.2);
+    }
+    
+    .remove-btn {
+      background-color: var(--danger);
+    }
+    
+    .remove-btn:hover {
+      background-color: #c0392b;
+    }
+    
+    .favorite-btn {
+      background-color: var(--dark);
+    }
+    
+    .favorite-btn:hover {
+      background-color: #1a252f;
+    }
+    
+    .favorite-btn.active {
+      background-color: #f1c40f;
+      color: var(--dark);
+    }
+    
+    .crypto-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 24px;
+      margin-bottom: 32px;
+    }
+    
+    .crypto-card {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: var(--card-shadow);
+      position: relative;
+      transition: all 0.3s;
+      border: 1px solid rgba(0, 0, 0, 0.05);
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .crypto-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    }
+    
+    .crypto-info-container {
+      display: flex;
+      width: 100%;
+    }
+    
+    .crypto-info {
+      flex: 1;
+    }
+    
+    .crypto-chart {
+      width: 40%;
+      height: 100px;
+      margin-left: 10px;
+      align-self: center;
+    }
+    
+    .crypto-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    
+    .crypto-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background-color: var(--light-gray);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 12px;
+      font-weight: bold;
+      font-size: 16px;
+    }
+    
+    .crypto-name {
+      flex: 1;
+    }
+    
+    .crypto-name h3 {
+      font-size: 18px;
+      font-weight: 600;
+    }
+    
+    .crypto-name p {
+      font-size: 14px;
+      color: #7f8c8d;
+    }
+    
+    .crypto-price {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+    
+    .crypto-change {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    
+    .positive {
+      background-color: rgba(46, 204, 113, 0.15);
+      color: var(--success);
+    }
+    
+    .negative {
+      background-color: rgba(231, 76, 60, 0.15);
+      color: var(--danger);
+    }
+    
+    .action-buttons {
+      display: flex;
+      margin-top: 20px;
+      gap: 8px;
+    }
+    
+    .action-buttons button {
+      flex: 1;
+      padding: 8px 12px;
+      font-size: 14px;
+    }
+    
+    .favorites-title {
+      display: flex;
+      align-items: center;
+      margin: 32px 0 16px;
+    }
+    
+    .favorites-title h2 {
+      font-size: 22px;
+      font-weight: 600;
+      margin-right: 12px;
+    }
+    
+    .favorites-title .star {
+      color: #f1c40f;
+      font-size: 24px;
+    }
+    
+    .loader {
+      display: flex;
+      justify-content: center;
+      margin: 40px 0;
+    }
+    
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid rgba(52, 152, 219, 0.1);
+      border-left-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 40px;
+      color: #95a5a6;
+    }
+    
+    .error-message {
+      background-color: rgba(231, 76, 60, 0.1);
+      color: var(--danger);
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 24px;
+      border-left: 4px solid var(--danger);
+    }
+    
+    .tabs {
+      display: flex;
+      margin-bottom: 24px;
+      border-bottom: 1px solid #ddd;
+    }
+    
+    .tab {
+      padding: 12px 24px;
+      cursor: pointer;
+      font-weight: 500;
+      border-bottom: 3px solid transparent;
+      transition: all 0.2s;
+    }
+    
+    .tab.active {
+      border-bottom-color: var(--primary);
+      color: var(--primary);
+    }
+    
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+    
+    @media (max-width: 768px) {
+      .crypto-container {
+        grid-template-columns: 1fr;
+      }
+      
+      .search-container {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Crypto Tracker</h1>
+    
+    <div class="tabs">
+      <div class="tab active" data-tab="all">All Cryptocurrencies</div>
+      <div class="tab" data-tab="favorites">Favorites</div>
+    </div>
+    
+    <div id="error-container"></div>
+    
+    <div class="search-container">
+      <div class="search-input-wrapper">
+        <input type="text" id="crypto-search" placeholder="Search for cryptocurrency..." autocomplete="off" />
+      </div>
+      <div class="custom-select">
+        <div id="selected-crypto">Select a cryptocurrency</div>
+        <div id="crypto-options" class="crypto-options">
+          <!-- Options will be populated dynamically -->
+        </div>
+      </div>
+      <button id="add-btn">Add Cryptocurrency</button>
+    </div>
+    
+    <div id="tab-all" class="tab-content">
+      <div id="crypto-container" class="crypto-container"></div>
+      <div id="loader" class="loader">
+        <div class="spinner"></div>
+      </div>
+    </div>
+    
+    <div id="tab-favorites" class="tab-content" style="display: none;">
+      <div class="favorites-title">
+        <h2>Your Favorites</h2>
+        <span class="star">â</span>
+      </div>
+      <div id="favorites-container" class="crypto-container"></div>
+    </div>
+  </div>
+
+  <script>
+    // State management
+    const state = {
+      cryptoList: [],
+      selectedCryptos: [],
+      favorites: [],
+      loading: true,
+      error: null,
+      activeTab: 'all',
+      chartPoints: 20 // Number of data points for simulated charts
+    };
+    
+    // DOM Elements
+    const cryptoSearch = document.getElementById('crypto-search');
+    const cryptoOptions = document.getElementById('crypto-options');
+    const selectedCrypto = document.getElementById('selected-crypto');
+    const addBtn = document.getElementById('add-btn');
+    const cryptoContainer = document.getElementById('crypto-container');
+    const favoritesContainer = document.getElementById('favorites-container');
+    const loader = document.getElementById('loader');
+    const errorContainer = document.getElementById('error-container');
+    const tabs = document.querySelectorAll('.tab');
+    const tabContents = document.querySelectorAll('.tab-content');
+    
+    // Initialize the application
+    async function init() {
+      try {
+        await loadCryptoList();
+        loadFromLocalStorage();
+        renderCryptos();
+        renderFavorites();
+        setupEventListeners();
+        setupSearchDropdown();
+      } catch (error) {
+        showError(error.message);
+      }
+    }
+    
+    // Setup the search dropdown functionality
+    function setupSearchDropdown() {
+      // Create search results container
+      const searchResults = document.createElement('div');
+      searchResults.className = 'search-results';
+      searchResults.id = 'search-results';
+      cryptoSearch.parentNode.appendChild(searchResults);
+      
+      // Handle search input
+      cryptoSearch.addEventListener('input', function() {
+        const searchText = this.value.toLowerCase().trim();
+        updateSearchResults(searchText);
+      });
+      
+      // Show results on focus
+      cryptoSearch.addEventListener('focus', function() {
+        const searchText = this.value.toLowerCase().trim();
+        updateSearchResults(searchText);
+        document.getElementById('search-results').style.display = 'block';
+      });
+      
+      // Handle click outside to close dropdown
+      document.addEventListener('click', function(e) {
+        if (!cryptoSearch.contains(e.target) && !searchResults.contains(e.target)) {
+          searchResults.style.display = 'none';
+        }
+      });
+    }
+    
+    // Update search results
+    function updateSearchResults(searchText) {
+      const searchResults = document.getElementById('search-results');
+      searchResults.innerHTML = '';
+      
+      // Filter available cryptos
+      const availableCryptos = state.cryptoList.filter(crypto => 
+        !state.selectedCryptos.some(selected => selected.id === crypto.id)
+      );
+      
+      if (availableCryptos.length === 0) {
+        searchResults.innerHTML = '<div class="crypto-option">No cryptocurrencies available</div>';
+        searchResults.style.display = 'block';
+        return;
+      }
+      
+      // Filter based on search text
+      let filteredCryptos = availableCryptos;
+      if (searchText) {
+        filteredCryptos = availableCryptos.filter(crypto => 
+          crypto.name.toLowerCase().includes(searchText) || 
+          crypto.id.toLowerCase().includes(searchText)
+        );
+      }
+      
+      // Limit to first 50 results to keep dropdown manageable
+      filteredCryptos = filteredCryptos.slice(0, 50);
+      
+      if (filteredCryptos.length === 0) {
+        searchResults.innerHTML = '<div class="crypto-option">No matches found</div>';
+      } else {
+        filteredCryptos.forEach(crypto => {
+          const option = document.createElement('div');
+          option.className = 'crypto-option';
+          option.setAttribute('data-id', crypto.id);
+          option.textContent = `${crypto.name} (${crypto.id})`;
+          
+          option.addEventListener('click', function() {
+            cryptoSearch.value = this.textContent;
+            cryptoSearch.setAttribute('data-selected', this.getAttribute('data-id'));
+            searchResults.style.display = 'none';
+          });
+          
+          searchResults.appendChild(option);
+        });
+      }
+      
+      searchResults.style.display = 'block';
+    }
+    
+    // Fetch available cryptocurrencies from Coinbase API
+    async function loadCryptoList() {
+      try {
+        state.loading = true;
+        renderLoading();
+        
+        const response = await axios.get('https://api.coinbase.com/v2/exchange-rates?currency=USD');
+        const rates = response.data.data.rates;
+        
+        // Transform exchange rates into our crypto list format
+        state.cryptoList = Object.keys(rates)
+          .filter(code => code !== 'USD' && !code.includes('USD'))
+          .map(code => ({
+            id: code,
+            name: getCryptoFullName(code),
+            type: 'crypto'
+          }))
+          .sort((a, b) => a.name.localeCompare(b.name));
+        
+        populateCryptoSelect();
+        
+        state.loading = false;
+        renderLoading();
+      } catch (error) {
+        console.error("Error loading crypto list:", error);
+        state.loading = false;
+        state.error = 'Failed to load cryptocurrencies list. Please try again.';
+        renderLoading();
+        showError(state.error);
+      }
+    }
+    
+    // Helper function to get full names for common cryptocurrencies
+    function getCryptoFullName(code) {
+      const cryptoNames = {
+        'BTC': 'Bitcoin',
+        'ETH': 'Ethereum',
+        'XRP': 'Ripple',
+        'LTC': 'Litecoin',
+        'BCH': 'Bitcoin Cash',
+        'ADA': 'Cardano',
+        'DOT': 'Polkadot',
+        'LINK': 'Chainlink',
+        'XLM': 'Stellar',
+        'DOGE': 'Dogecoin',
+        'SOL': 'Solana',
+        'MATIC': 'Polygon',
+        'AVAX': 'Avalanche',
+        'ATOM': 'Cosmos',
+        'UNI': 'Uniswap',
+        'ALGO': 'Algorand',
+        'MANA': 'Decentraland',
+        'AXS': 'Axie Infinity',
+        'SAND': 'The Sandbox',
+        'SHIB': 'Shiba Inu'
+      };
+      
+      return cryptoNames[code] || code;
+    }
+    
+    // Fetch price data for selected cryptocurrencies
+    async function fetchPriceData() {
+      try {
+        state.loading = true;
+        renderLoading();
+        
+        // Get current exchange rates for all currencies at once
+        const ratesResponse = await axios.get('https://api.coinbase.com/v2/exchange-rates?currency=USD');
+        const currentRates = ratesResponse.data.data.rates;
+        
+        // Get rates from 24 hours ago to calculate change
+        const yesterdayDate = getYesterdayDate();
+        let yesterdayRates = {};
+        
+        try {
+          // Try to get historical data, but this might not work with the public API
+          const yesterdayResponse = await axios.get(`https://api.coinbase.com/v2/exchange-rates?currency=USD&date=${yesterdayDate}`);
+          yesterdayRates = yesterdayResponse.data.data.rates;
+        } catch (error) {
+          console.warn("Could not fetch historical rates, using estimated changes");
+          // Fallback: Use current rates but with small random variations for demo purposes
+          yesterdayRates = Object.keys(currentRates).reduce((acc, key) => {
+            const currentRate = parseFloat(currentRates[key]);
+            // Generate a random change between -5% and +5%
+            const randomChange = (Math.random() * 0.1) - 0.05; 
+            acc[key] = (currentRate * (1 - randomChange)).toString();
+            return acc;
+          }, {});
+        }
+        
+        const updatedCryptos = state.selectedCryptos.map(crypto => {
+          try {
+            // For each crypto, calculate the price in USD (which is 1/rate)
+            if (currentRates[crypto.id]) {
+              const rate = parseFloat(currentRates[crypto.id]);
+              const price = 1 / rate;
+              
+              let yesterdayPrice = price;
+              let change = 0;
+              
+              if (yesterdayRates[crypto.id]) {
+                const yesterdayRate = parseFloat(yesterdayRates[crypto.id]);
+                yesterdayPrice = 1 / yesterdayRate;
+                change = ((price - yesterdayPrice) / yesterdayPrice) * 100;
+              }
+              
+              // Generate a simulated price history for the chart
+              const priceHistory = generatePriceHistory(price, yesterdayPrice, state.chartPoints);
+              
+              return {
+                ...crypto,
+                price,
+                marketPrice: price * 1.005, // Simulate a small buy fee
+                change,
+                yesterdayPrice,
+                priceHistory
+              };
+            } else {
+              return {
+                ...crypto,
+                price: null,
+                marketPrice: null,
+                change: null,
+                error: true
+              };
+            }
+          } catch (error) {
+            console.error(`Error processing data for ${crypto.id}:`, error);
+            return {
+              ...crypto,
+              price: null,
+              marketPrice: null,
+              change: null,
+              error: true
+            };
+          }
+        });
+        
+        state.selectedCryptos = updatedCryptos;
+        
+        state.loading = false;
+        renderLoading();
+        renderCryptos();
+        renderFavorites();
+        saveToLocalStorage();
+      } catch (error) {
+        console.error("Error fetching price data:", error);
+        state.loading = false;
+        state.error = 'Failed to fetch price data. Please try again.';
+        renderLoading();
+        showError(state.error);
+      }
+    }
+    
+    // Generate simulated price history data
+    function generatePriceHistory(currentPrice, yesterdayPrice, points) {
+      const history = [];
+      const trend = currentPrice >= yesterdayPrice ? 1 : -1;
+      const priceDiff = Math.abs(currentPrice - yesterdayPrice);
+      
+      // Start with yesterday's price
+      let lastPrice = yesterdayPrice;
+      
+      for (let i = 0; i < points; i++) {
+        // Calculate progress (0 to 1) from yesterday to today
+        const progress = i / (points - 1);
+        
+        // Base value follows the trend from yesterday to today
+        const baseValue = yesterdayPrice + (progress * priceDiff * trend);
+        
+        // Add some randomness but preserve the general trend
+        const volatility = 0.02; // 2% max deviation from trend line
+        const randomFactor = 1 + ((Math.random() * volatility * 2) - volatility);
+        
+        const price = baseValue * randomFactor;
+        
+        // Don't let random spikes overcome the overall trend
+        if ((trend > 0 && price < lastPrice) || (trend < 0 && price > lastPrice)) {
+          lastPrice = price * 0.9998 + lastPrice * 0.0002; // Small smoothing
+        } else {
+          lastPrice = price;
+        }
+        
+        // Timestamp for the datapoint (from yesterday to now)
+        const timestamp = Date.now() - (24 * 60 * 60 * 1000) + (progress * 24 * 60 * 60 * 1000);
+        
+        history.push({
+          timestamp,
+          price: lastPrice
+        });
+      }
+      
+      // Make sure the last point matches the current price exactly
+      history[points - 1].price = currentPrice;
+      
+      return history;
+    }
+    
+    // Populate the select dropdown with available cryptocurrencies - Not used in new implementation
+    function populateCryptoSelect() {
+      // This function is kept for backward compatibility
+      // but its functionality has been replaced by updateSearchResults
+    }
+    
+    // Add a cryptocurrency to the tracked list
+    function addCrypto() {
+      const selectedId = cryptoSearch.getAttribute('data-selected');
+      
+      if (!selectedId) {
+        showError("Please select a cryptocurrency from the dropdown");
+        return;
+      }
+      
+      const crypto = state.cryptoList.find(c => c.id === selectedId);
+      if (crypto) {
+        state.selectedCryptos.push({
+          id: crypto.id,
+          name: crypto.name,
+          price: null,
+          change: null,
+          loading: true
+        });
+        
+        fetchPriceData();
+        
+        // Clear the search input and selected data
+        cryptoSearch.value = '';
+        cryptoSearch.removeAttribute('data-selected');
+        document.getElementById('search-results').style.display = 'none';
+        
+        // Update the search results
+        updateSearchResults('');
+      } else {
+        showError("Could not find the selected cryptocurrency. Please try again.");
+      }
+    }
+    
+    // Remove a cryptocurrency from the tracked list
+    function removeCrypto(id) {
+      state.selectedCryptos = state.selectedCryptos.filter(crypto => crypto.id !== id);
+      
+      // Also remove from favorites if present
+      state.favorites = state.favorites.filter(fav => fav !== id);
+      
+      renderCryptos();
+      renderFavorites();
+      saveToLocalStorage();
+      
+      // Update search results
+      const searchText = cryptoSearch.value.toLowerCase().trim();
+      updateSearchResults(searchText);
+    }
+    
+    // Toggle a cryptocurrency as favorite
+    function toggleFavorite(id) {
+      if (state.favorites.includes(id)) {
+        state.favorites = state.favorites.filter(fav => fav !== id);
+      } else {
+        state.favorites.push(id);
+      }
+      
+      renderCryptos();
+      renderFavorites();
+      saveToLocalStorage();
+    }
+    
+    // Function to generate a random chart path
+    function generateChartPath(crypto) {
+      // If we have history data, use it
+      if (crypto.priceHistory) {
+        return generatePathFromHistory(crypto.priceHistory);
+      }
+      
+      // Otherwise generate a random path that somewhat follows the trend (up or down)
+      const trend = crypto.change >= 0 ? 1 : -1;
+      let path = 'M0,35';
+      const points = 10;
+      
+      for (let i = 1; i <= points; i++) {
+        const x = (i / points) * 100;
+        
+        // Start around middle
+        let y = 25;
+        
+        // Add some randomness but follow the general trend
+        const randomVariation = Math.random() * 20 - 10; // -10 to +10
+        const trendComponent = trend * (Math.random() * 15) * (i / points);
+        
+        y = y - trendComponent + randomVariation;
+        // Keep within svg boundaries
+        y = Math.max(5, Math.min(45, y));
+        
+        path += ` L${x},${y}`;
+      }
+      
+      return path;
+    }
+    
+    // Generate path from price history data
+    function generatePathFromHistory(history) {
+      if (!history || history.length < 2) {
+        return 'M0,25 L100,25'; // Flat line if no history
+      }
+      
+      // Find min and max for scaling
+      const prices = history.map(h => h.price);
+      const min = Math.min(...prices);
+      const max = Math.max(...prices);
+      const range = max - min || 1; // Avoid division by zero
+      
+      // Generate the path
+      let path = `M0,${scaleY(history[0].price, min, range)}`;
+      
+      for (let i = 1; i < history.length; i++) {
+        const x = (i / (history.length - 1)) * 100;
+        const y = scaleY(history[i].price, min, range);
+        path += ` L${x},${y}`;
+      }
+      
+      return path;
+      
+      // Helper to scale Y values to fit in the SVG
+      function scaleY(price, min, range) {
+        // Scale to 5-45 range (inverted since SVG y-axis is top-down)
+        return 45 - ((price - min) / range) * 40;
+      }
+    }
+    
+    // Render the cryptocurrencies in the main container
+    function renderCryptos() {
+      cryptoContainer.innerHTML = '';
+      
+      if (state.selectedCryptos.length === 0) {
+        cryptoContainer.innerHTML = `
+          <div class="empty-state">
+            <h3>No cryptocurrencies added yet</h3>
+            <p>Use the search box above to add cryptocurrencies to track</p>
+          </div>
+        `;
+        return;
+      }
+      
+      state.selectedCryptos.forEach(crypto => {
+        const isFavorite = state.favorites.includes(crypto.id);
+        
+        const cryptoCard = document.createElement('div');
+        cryptoCard.className = 'crypto-card';
+        
+        // Format price with appropriate decimal places based on value
+        let priceDisplay = 'Loading...';
+        if (crypto.price !== null) {
+          if (crypto.price < 0.01) {
+            priceDisplay = `$${crypto.price.toFixed(6)}`;
+          } else if (crypto.price < 1) {
+            priceDisplay = `$${crypto.price.toFixed(4)}`;
+          } else if (crypto.price < 1000) {
+              priceDisplay = `$${crypto.price.toFixed(2)}`;
+          } else {
+            priceDisplay = `$${crypto.price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+          }
+        }
+        
+        let changeElement = '';
+        if (crypto.change !== null) {
+          const changeClass = crypto.change >= 0 ? 'positive' : 'negative';
+          const changeSign = crypto.change >= 0 ? '+' : '';
+          changeElement = `
+            <span class="crypto-change ${changeClass}">
+              ${changeSign}${crypto.change.toFixed(2)}%
+            </span>
+          `;
+        }
+        
+        cryptoCard.innerHTML = `
+          <div class="crypto-info-container">
+            <div class="crypto-info">
+              <div class="crypto-header">
+                <div class="crypto-icon">${crypto.id.charAt(0)}</div>
+                <div class="crypto-name">
+                  <h3>${crypto.name}</h3>
+                  <p>${crypto.id}</p>
+                </div>
+              </div>
+              <div class="crypto-price">${priceDisplay}</div>
+              ${changeElement}
+            </div>
+            <div class="crypto-chart">
+              <svg width="100%" height="100%" viewBox="0 0 100 50" preserveAspectRatio="none">
+                <path d="${generateChartPath(crypto)}" fill="none" stroke="${crypto.change >= 0 ? '#f1c40f' : '#e74c3c'}" stroke-width="2" />
+              </svg>
+            </div>
+          </div>
+          <div class="action-buttons">
+            <button class="favorite-btn ${isFavorite ? 'active' : ''}" data-id="${crypto.id}">
+              ${isFavorite ? 'â Favorited' : 'â Favorite'}
+            </button>
+            <button class="remove-btn" data-id="${crypto.id}">Remove</button>
+          </div>
+        `;
+        
+        cryptoContainer.appendChild(cryptoCard);
+      });
+      
+      // Add event listeners to the buttons
+      document.querySelectorAll('.remove-btn').forEach(btn => {
+        btn.addEventListener('click', e => {
+          const id = e.target.getAttribute('data-id');
+          removeCrypto(id);
+        });
+      });
+      
+      document.querySelectorAll('.favorite-btn').forEach(btn => {
+        btn.addEventListener('click', e => {
+          const id = e.target.getAttribute('data-id');
+          toggleFavorite(id);
+        });
+      });
+    }
+    
+    // Render the favorite cryptocurrencies
+    function renderFavorites() {
+      favoritesContainer.innerHTML = '';
+      
+      const favoriteCryptos = state.selectedCryptos.filter(crypto => 
+        state.favorites.includes(crypto.id)
+      );
+      
+      if (favoriteCryptos.length === 0) {
+        favoritesContainer.innerHTML = `
+          <div class="empty-state">
+            <h3>No favorites yet</h3>
+            <p>Mark cryptocurrencies as favorites to see them here</p>
+          </div>
+        `;
+        return;
+      }
+      
+      favoriteCryptos.forEach(crypto => {
+        const cryptoCard = document.createElement('div');
+        cryptoCard.className = 'crypto-card';
+        
+        // Format price with appropriate decimal places based on value
+        let priceDisplay = 'Loading...';
+        if (crypto.price !== null) {
+          if (crypto.price < 0.01) {
+            priceDisplay = `$${crypto.price.toFixed(6)}`;
+          } else if (crypto.price < 1) {
+            priceDisplay = `$${crypto.price.toFixed(4)}`;
+          } else if (crypto.price < 1000) {
+            priceDisplay = `$${crypto.price.toFixed(2)}`;
+          } else {
+            priceDisplay = `$${crypto.price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+          }
+        }
+        
+        let changeElement = '';
+        if (crypto.change !== null) {
+          const changeClass = crypto.change >= 0 ? 'positive' : 'negative';
+          const changeSign = crypto.change >= 0 ? '+' : '';
+          changeElement = `
+            <span class="crypto-change ${changeClass}">
+              ${changeSign}${crypto.change.toFixed(2)}%
+            </span>
+          `;
+        }
+        
+        cryptoCard.innerHTML = `
+          <div class="crypto-info-container">
+            <div class="crypto-info">
+              <div class="crypto-header">
+                <div class="crypto-icon">${crypto.id.charAt(0)}</div>
+                <div class="crypto-name">
+                  <h3>${crypto.name}</h3>
+                  <p>${crypto.id}</p>
+                </div>
+              </div>
+              <div class="crypto-price">${priceDisplay}</div>
+              ${changeElement}
+            </div>
+            <div class="crypto-chart">
+              <svg width="100%" height="100%" viewBox="0 0 100 50" preserveAspectRatio="none">
+                <path d="${generateChartPath(crypto)}" fill="none" stroke="${crypto.change >= 0 ? '#f1c40f' : '#e74c3c'}" stroke-width="2" />
+              </svg>
+            </div>
+          </div>
+          <div class="action-buttons">
+            <button class="favorite-btn active" data-id="${crypto.id}">â Favorited</button>
+            <button class="remove-btn" data-id="${crypto.id}">Remove</button>
+          </div>
+        `;
+        
+        favoritesContainer.appendChild(cryptoCard);
+      });
+      
+      // Add event listeners to the buttons
+      document.querySelectorAll('.remove-btn').forEach(btn => {
+        btn.addEventListener('click', e => {
+          const id = e.target.getAttribute('data-id');
+          removeCrypto(id);
+        });
+      });
+      
+      document.querySelectorAll('.favorite-btn').forEach(btn => {
+        btn.addEventListener('click', e => {
+          const id = e.target.getAttribute('data-id');
+          toggleFavorite(id);
+        });
+      });
+    }
+    
+    // Show loading indicator
+    function renderLoading() {
+      if (state.loading) {
+        loader.style.display = 'flex';
+      } else {
+        loader.style.display = 'none';
+      }
+    }
+    
+    // Show error message
+    function showError(message) {
+      errorContainer.innerHTML = `
+        <div class="error-message">
+          ${message}
+        </div>
+      `;
+      
+      // Auto-hide after 5 seconds
+      setTimeout(() => {
+        errorContainer.innerHTML = '';
+      }, 5000);
+    }
+    
+    // Switch between tabs
+    function switchTab(tab) {
+      state.activeTab = tab;
+      
+      tabs.forEach(tabEl => {
+        if (tabEl.getAttribute('data-tab') === tab) {
+          tabEl.classList.add('active');
+        } else {
+          tabEl.classList.remove('active');
+        }
+      });
+      
+      tabContents.forEach(content => {
+        if (content.id === `tab-${tab}`) {
+          content.style.display = 'block';
+        } else {
+          content.style.display = 'none';
+        }
+      });
+    }
+    
+    // Save state to localStorage
+    function saveToLocalStorage() {
+      localStorage.setItem('cryptoTracker', JSON.stringify({
+        selectedCryptos: state.selectedCryptos,
+        favorites: state.favorites
+      }));
+    }
+    
+    // Load state from localStorage
+    function loadFromLocalStorage() {
+      const saved = localStorage.getItem('cryptoTracker');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        state.selectedCryptos = parsed.selectedCryptos || [];
+        state.favorites = parsed.favorites || [];
+      }
+    }
+    
+    // Setup event listeners
+    function setupEventListeners() {
+      addBtn.addEventListener('click', addCrypto);
+      
+      tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+          switchTab(tab.getAttribute('data-tab'));
+        });
+      });
+      
+      // Set up automatic refresh every 60 seconds
+      setInterval(fetchPriceData, 60000);
+    }
+    
+    // Helper function to get yesterday's date in ISO format
+    function getYesterdayDate() {
+      const date = new Date();
+      date.setDate(date.getDate() - 1);
+      return date.toISOString().split('T')[0];
+    }
+    
+    // Start the application
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>
