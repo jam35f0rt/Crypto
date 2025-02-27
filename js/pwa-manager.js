@@ -19,7 +19,7 @@ const PWAManager = {
       window.addEventListener('load', () => {
         // Use the correct path relative to the root of the site
         // This will work regardless of where the page is loaded from
-        const swPath = new URL('sw.js', window.location.origin).pathname;
+        const swPath = new URL('../sw.js', window.location.origin).pathname;
         
         navigator.serviceWorker.register(swPath)
           .then(registration => {
