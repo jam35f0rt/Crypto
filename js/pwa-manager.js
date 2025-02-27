@@ -63,7 +63,7 @@ const PWAManager = {
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         // Using a standard file path instead of a blob URL
-        navigator.serviceWorker.register('/Crypto/sw.js')
+        navigator.serviceWorker.register('/./sw.js')
           .then(registration => {
             console.log('Service Worker registered with scope:', registration.scope);
           })
