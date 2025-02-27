@@ -139,7 +139,7 @@ const UIService = {
       const cryptoContainer = document.getElementById('crypto-container');
       cryptoContainer.innerHTML = '';
       
-      if (selectedCryptos.length === 0) {
+      if (!selectedCryptos || selectedCryptos.length === 0) {
         cryptoContainer.innerHTML = `
           <div class="empty-state">
             <h3>No cryptocurrencies added yet</h3>
@@ -162,8 +162,10 @@ const UIService = {
      * Render favorite cryptocurrencies
      * @param {Array} favorites - Favorite cryptocurrency IDs
      */
-    renderFavorites(favorites) {
+    renderFavorites(favorites = []) {
       const favoritesContainer = document.getElementById('favorites-container');
+      if (!favoritesContainer) return; // Safety check
+      
       favoritesContainer.innerHTML = '';
       
       const favoriteCryptos = State.get('selectedCryptos').filter(crypto => 
@@ -251,6 +253,7 @@ const UIService = {
         btn.addEventListener('click', e => {
           const id = e.target.getAttribute('data-id');
           CryptoManager.removeCrypto(id);
+          e.stopPropagation(); // Prevent event bubbling
         });
       });
       
@@ -258,6 +261,7 @@ const UIService = {
         btn.addEventListener('click', e => {
           const id = e.target.getAttribute('data-id');
           CryptoManager.toggleFavorite(id);
+          e.stopPropagation(); // Prevent event bubbling
         });
       });
     }

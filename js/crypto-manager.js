@@ -61,10 +61,34 @@ const CryptoManager = {
      */
     toggleFavorite(id) {
       // Add to favorites if not present, remove if present
-      State.toggleInArray('favorites', id);
+      const favorites = State.get('favorites');
+      const isFavorite = favorites.includes(id);
+      
+      if (isFavorite) {
+        State.removeFromArray('favorites', id);
+        
+        // Directly update the button in DOM for immediate feedback
+        const buttons = document.querySelectorAll(`.favorite-btn[data-id="${id}"]`);
+        buttons.forEach(button => {
+          button.classList.remove('active');
+          button.textContent = '☆ Favorite';
+        });
+      } else {
+        State.addToArray('favorites', id);
+        
+        // Directly update the button in DOM for immediate feedback
+        const buttons = document.querySelectorAll(`.favorite-btn[data-id="${id}"]`);
+        buttons.forEach(button => {
+          button.classList.add('active');
+          button.textContent = '★ Favorited';
+        });
+      }
       
       // Save to storage
       StorageService.saveToStorage();
+      
+      // Re-render favorites container
+      UIService.renderFavorites(State.get('favorites'));
     },
     
     /**

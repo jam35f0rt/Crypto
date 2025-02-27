@@ -137,6 +137,8 @@
   
   .favorite-btn {
     background-color: var(--dark);
+    color: white;
+    transition: all 0.2s ease;
   }
   
   .favorite-btn:hover {
@@ -146,6 +148,11 @@
   .favorite-btn.active {
     background-color: #f1c40f;
     color: var(--dark);
+  }
+  
+  /* Add this to ensure the button color update is more apparent */
+  .favorite-btn:active {
+    transform: scale(0.95);
   }
   
   .crypto-container {
