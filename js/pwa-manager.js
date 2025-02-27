@@ -17,8 +17,11 @@ const PWAManager = {
   setupServiceWorker() {
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        // Using a standard file path instead of a blob URL
-        navigator.serviceWorker.register('/./sw.js')
+        // Use the correct path relative to the root of the site
+        // This will work regardless of where the page is loaded from
+        const swPath = new URL('sw.js', window.location.origin).pathname;
+        
+        navigator.serviceWorker.register(swPath)
           .then(registration => {
             console.log('Service Worker registered with scope:', registration.scope);
           })
