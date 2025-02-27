@@ -19,9 +19,8 @@ const PWAManager = {
       window.addEventListener('load', () => {
         // Use the correct path relative to the root of the site
         // This will work regardless of where the page is loaded from
-        const swPath = new URL('../sw.js', window.location.origin).pathname;
-        
-        navigator.serviceWorker.register(swPath)
+
+        navigator.serviceWorker.register('/Crypto/sw.js')
           .then(registration => {
             console.log('Service Worker registered with scope:', registration.scope);
           })
